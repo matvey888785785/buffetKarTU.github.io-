@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>КарТУ Буфет Express</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          boxShadow: {
+            soft: '0 10px 40px -12px rgba(37, 99, 235, 0.25)',
+            cart: '0 -8px 32px rgba(30, 64, 175, 0.15)'
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    html, body { font-family: 'Manrope', system-ui, sans-serif; }
+    body { background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 42%, #ffffff 100%); min-height: 100dvh; }
+    @keyframes pop { 0% { transform: scale(.94); opacity: 0 } 100% { transform: scale(1); opacity: 1 } }
+    .animate-pop { animation: pop .28s ease-out; }
+    @keyframes pulse-ring { 0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, .35) } 50% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0) } }
+    .live-dot { animation: pulse-ring 1.6s ease-out infinite; }
+    .card-shine { background-image: radial-gradient(120% 80% at 0% 0%, rgba(255,255,255,.28), transparent 55%), linear-gradient(135deg, #1d4ed8, #1e3a8a 55%, #0f172a); }
+    .card-kaspi { background-image: radial-gradient(120% 80% at 100% 0%, rgba(255,220,180,.35), transparent 50%), linear-gradient(135deg, #f14635, #b91c1c 60%, #7f1d1d); }
+    input[type=number]::-webkit-inner-spin-button { appearance: none; }
+    @keyframes blink-num {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .35; transform: scale(1.04); }
+    }
+    .blink-num { animation: blink-num .7s ease-in-out infinite; }
+    @keyframes board-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+    .board-card { animation: board-in .35s ease-out; }
+    .tv-bg { background: radial-gradient(120% 80% at 50% 0%, #0b1f4a 0%, #020617 55%); }
+    .barcode { display: flex; align-items: stretch; height: 56px; gap: 0; justify-content: center; }
+    .barcode i { display: block; height: 100%; background: #0f172a; }
+    @keyframes kaspi-shine {
+      0% { transform: translateX(-120%) rotate(12deg); }
+      100% { transform: translateX(220%) rotate(12deg); }
+    }
+    .kaspi-shine::after {
+      content: '';
+      position: absolute; inset: -20% auto -20% -40%;
+      width: 40%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+      animation: kaspi-shine 1.8s ease-in-out infinite;
+    }
+    @keyframes sand {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(180deg); }
+    }
+    .hourglass { display: inline-block; animation: sand 2.4s ease-in-out infinite; }
+  </style>
+</head>
+<body class="text-slate-800 antialiased">
+  <div id="screen-auth" class="mx-auto max-w-lg min-h-dvh px-4 py-8 hidden flex flex-col">
+    <div class="flex items-center gap-3 mb-8">
+      <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-800 text-white grid place-items-center shadow-soft">
+        <span class="text-lg font-extrabold">К</span>
+      </div>
+      <div>
+        <p class="text-[11px] font-bold text-blue-500 uppercase tracking-wide">Студенческий сервис</p>
+        <h1 class="text-xl font-extrabold text-blue-900 leading-tight">КарТУ Буфет Express</h1>
+      </div>
+    </div>
+    <div class="rounded-3xl bg-white border border-blue-100 p-5 shadow-soft animate-pop">
+      <h2 class="text-lg font-extrabold text-blue-900">Однократная регистрация</h2>
+      <p class="text-sm text-slate-500 mt-1 mb-4">КарТУ им. Абылкаса Сагинова. Данные сохраняются — при следующем открытии сразу откроется меню.</p>
+      <form id="auth-form" class="grid gap-3" onsubmit="submitAuth(event)">
+        <label class="grid gap-1">
+          <span class="text-xs font-bold text-blue-800">ФИО</span>
+          <input id="auth-fio" required maxlength="80" placeholder="Иванов Иван Иванович" class="rounded-2xl border border-blue-100 bg-blue-50/40 px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </label>
+        <label class="grid gap-1">
+          <span class="text-xs font-bold text-blue-800">Номер студенческого билета</span>
+          <input id="auth-sid" required maxlength="16" placeholder="202612345" inputmode="numeric" class="rounded-2xl border border-blue-100 bg-blue-50/40 px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </label>
+        <label class="grid gap-1">
+          <span class="text-xs font-bold text-blue-800">Телефон</span>
+          <input id="auth-phone" required maxlength="18" placeholder="+7 700 123 45 67" inputmode="tel" class="rounded-2xl border border-blue-100 bg-blue-50/40 px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </label>
+        <label class="grid gap-1">
+          <span class="text-xs font-bold text-blue-800">Курс</span>
+          <select id="auth-course" required class="rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="1 курс">1 курс</option>
+            <option value="2 курс">2 курс</option>
+            <option value="3 курс">3 курс</option>
+            <option value="4 курс">4 курс</option>
+          </select>
+        </label>
+        <label class="grid gap-1">
+          <span class="text-xs font-bold text-blue-800">Академическая группа</span>
+          <select id="auth-group" required class="rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option>Э-26-3</option>
+            <option>ИС-25-1</option>
+            <option>ВТ-24-2</option>
+            <option>АС-23-4</option>
+            <option>М-26-1</option>
+            <option>ЭН-24-2</option>
+            <option>ПИ-25-3</option>
+          </select>
+        </label>
+        <label class="grid gap-1">
+          <span class="text-xs font-bold text-blue-800">Корпус / буфет</span>
+          <select id="auth-venue" required class="rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+        </label>
+        <p class="text-[11px] text-slate-500">Меню и нумерация заказов зависят от выбранной точки выдачи.</p>
+        <p id="auth-error" class="hidden text-xs font-bold text-red-600"></p>
+        <button class="mt-1 w-full rounded-2xl bg-blue-600 text-white font-extrabold py-3.5 shadow-soft active:scale-[.99] transition">Сохранить и открыть меню</button>
+      </form>
+    </div>
+    <div class="mt-auto pt-8 text-center">
+      <button type="button" onclick="openStaffPin()" class="text-[11px] font-semibold text-slate-400 hover:text-blue-700">Вход для сотрудников 🔒</button>
+    </div>
+  </div>
+
+  <div id="screen-wallet" class="mx-auto max-w-lg min-h-dvh px-4 py-8 hidden">
+    <button onclick="enterApp()" class="text-sm font-bold text-blue-700 mb-4">← Позже</button>
+    <h2 class="text-xl font-extrabold text-blue-900">Привязка оплаты</h2>
+    <p class="text-sm text-slate-500 mt-1 mb-4">Имитация карты и Kaspi Gold. Реальные платежи не проводятся, CVV не сохраняется.</p>
+    <div id="wallet-preview" class="mb-4"></div>
+    <div class="inline-flex rounded-full bg-blue-50 p-1 border border-blue-100 mb-4">
+      <button type="button" id="paytab-card" class="px-4 py-1.5 rounded-full text-xs font-bold" onclick="setPayTab('card')">Банковская карта</button>
+      <button type="button" id="paytab-kaspi" class="px-4 py-1.5 rounded-full text-xs font-bold" onclick="setPayTab('kaspi')">Kaspi</button>
+    </div>
+
+    <form id="form-card" class="grid gap-3" onsubmit="startCardBind(event)">
+      <div id="card-step-form" class="grid gap-3">
+        <label class="grid gap-1">
+          <span class="text-xs font-bold text-blue-800">Номер карты</span>
+          <input id="card-number" inputmode="numeric" maxlength="19" placeholder="ACCT-000015" class="rounded-2xl border border-blue-100 px-4 py-3 text-sm font-semibold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="grid gap-1">
+            <span class="text-xs font-bold text-blue-800">Срок</span>
+            <input id="card-exp" maxlength="5" placeholder="12/28" class="rounded-2xl border border-blue-100 px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-xs font-bold text-blue-800">CVV</span>
+            <input id="card-cvv" inputmode="numeric" maxlength="4" placeholder="•••" autocomplete="off" class="rounded-2xl border border-blue-100 px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </label>
+        </div>
+        <p id="card-error" class="hidden text-xs font-bold text-red-600"></p>
+        <button class="w-full rounded-2xl bg-blue-600 text-white font-extrabold py-3.5">Проверить карту</button>
+      </div>
+      <div id="card-step-3ds" class="hidden rounded-3xl border border-blue-100 bg-white p-5">
+        <p class="text-[11px] font-bold text-blue-500 uppercase tracking-wide">3-D Secure · имитация</p>
+        <h3 class="text-lg font-extrabold text-blue-900 mt-1">Подтверждение банка</h3>
+        <p class="text-sm text-slate-500 mt-1 mb-4">Введите любой 4-значный код. Это учебная привязка, деньги не списываются.</p>
+        <input id="card-otp" inputmode="numeric" maxlength="4" placeholder="••••" class="w-full rounded-2xl border border-blue-100 px-4 py-3 text-center text-2xl font-black tracking-[.4em] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <button type="button" onclick="finishCardBind()" class="mt-4 w-full rounded-2xl bg-blue-600 text-white font-extrabold py-3.5">Подтвердить привязку</button>
+      </div>
+    </form>
+
+    <div id="form-kaspi" class="grid gap-3 hidden">
+      <div id="kaspi-step-phone" class="grid gap-3">
+        <label class="grid gap-1">
+          <span class="text-xs font-bold text-blue-800">Телефон Kaspi</span>
+          <input id="kaspi-phone" inputmode="tel" maxlength="18" placeholder="+7 700 123 45 67" class="rounded-2xl border border-blue-100 px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </label>
+        <p id="kaspi-error" class="hidden text-xs font-bold text-red-600"></p>
+        <button type="button" onclick="startKaspiBind()" class="w-full rounded-2xl bg-[#F14635] text-white font-extrabold py-3.5">Открыть Kaspi Gold</button>
+      </div>
+      <div id="kaspi-step-push" class="hidden rounded-3xl border border-red-100 bg-white p-5 overflow-hidden relative">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="h-11 w-11 rounded-2xl bg-[#F14635] text-white grid place-items-center font-black">K</div>
+          <div>
+            <p class="text-sm font-extrabold text-slate-900">Kaspi.kz</p>
+            <p class="text-xs text-slate-500">Подтверждение привязки</p>
+          </div>
+        </div>
+        <p class="text-sm font-semibold text-slate-700 mb-3">Нажмите «Подтвердить» в приложении Kaspi. Это красивая имитация, реальное приложение не открывается.</p>
+        <div class="h-2 rounded-full bg-red-50 overflow-hidden mb-4">
+          <div id="kaspi-bar" class="h-full w-1/5 bg-[#F14635] transition-all duration-500"></div>
+        </div>
+        <input id="kaspi-otp" inputmode="numeric" maxlength="4" placeholder="Код из SMS · любой" class="w-full rounded-2xl border border-red-100 px-4 py-3 text-center text-xl font-black tracking-[.3em] focus:outline-none focus:ring-2 focus:ring-red-400" />
+        <button type="button" onclick="finishKaspiBind()" class="mt-4 w-full rounded-2xl bg-[#F14635] text-white font-extrabold py-3.5">Подтвердить в Kaspi</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-app" class="mx-auto max-w-lg min-h-dvh flex flex-col relative pb-[env(safe-area-inset-bottom)] hidden">
+    <header id="app-header" class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-blue-100">
+      <div class="px-4 pt-4 pb-3">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="h-11 w-11 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-800 text-white grid place-items-center shadow-soft shrink-0">
+              <span class="text-lg font-extrabold">К</span>
+            </div>
+            <div class="min-w-0">
+              <h1 class="text-[17px] font-extrabold text-blue-900 leading-tight truncate">КарТУ Буфет Express</h1>
+              <p id="header-user" class="text-[11px] text-blue-600 font-bold truncate"></p>
+            </div>
+          </div>
+          <button onclick="setMode('profile')" class="h-11 w-11 rounded-2xl bg-blue-50 border border-blue-100 text-blue-800 font-black text-sm shrink-0" id="header-initials">?</button>
+        </div>
+        <div class="mt-3 flex items-center justify-between gap-2 overflow-x-auto">
+          <div class="inline-flex rounded-full bg-blue-50 p-1 border border-blue-100" role="tablist">
+            <button id="tab-student" class="px-3 py-1.5 rounded-full text-[11px] font-bold transition whitespace-nowrap" onclick="setMode('student')">Студент</button>
+            <button id="tab-board" class="px-3 py-1.5 rounded-full text-[11px] font-bold transition whitespace-nowrap" onclick="setMode('board')">Табло</button>
+            <button id="tab-profile" class="px-3 py-1.5 rounded-full text-[11px] font-bold transition whitespace-nowrap" onclick="setMode('profile')">Профиль</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 px-4 pt-4">
+      <section id="view-student">
+        <div id="pair-timer" class="rounded-2xl bg-white border border-blue-100 p-4 mb-4 shadow-sm"></div>
+
+        <label class="block text-xs font-bold text-blue-800 mb-1.5">Точка выдачи</label>
+        <div class="relative mb-4">
+          <select id="campus" class="w-full appearance-none rounded-2xl border border-blue-100 bg-white px-4 py-3 pr-10 text-sm font-semibold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+          <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-blue-500">▾</span>
+        </div>
+        <p id="venue-hint" class="text-[11px] text-slate-500 -mt-3 mb-4"></p>
+
+        <div id="active-order" class="hidden mb-4 rounded-2xl border p-4"></div>
+
+        <div class="mb-5">
+          <h2 class="text-sm font-extrabold text-blue-900 mb-2">Популярное</h2>
+          <div id="popular-slot"></div>
+        </div>
+
+        <h2 class="text-sm font-extrabold text-blue-900 mb-2">Выпечка</h2>
+        <div id="cat-bakery" class="grid gap-3 mb-5"></div>
+        <h2 class="text-sm font-extrabold text-blue-900 mb-2">Напитки</h2>
+        <div id="cat-drinks" class="grid gap-3 mb-20"></div>
+      </section>
+
+      <section id="view-board" class="hidden pb-6">
+        <div class="rounded-2xl tv-bg text-white p-4 mb-4">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-[11px] text-blue-200 font-bold uppercase tracking-widest">Экран очереди · ТВ / планшет</p>
+              <p class="text-lg font-extrabold" id="board-title">КарТУ Буфет</p>
+            </div>
+            <p id="board-clock" class="text-2xl font-black tabular-nums"></p>
+          </div>
+          <select id="board-venue" class="mt-3 w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-sm font-semibold text-white"></select>
+        </div>
+        <div class="grid grid-cols-2 gap-3 min-h-[60vh]">
+          <div class="rounded-3xl bg-blue-50 border border-blue-100 p-3">
+            <p class="text-center text-xs font-black uppercase tracking-widest text-blue-700 mb-3">Готовится</p>
+            <div id="board-cooking" class="grid gap-2"></div>
+          </div>
+          <div class="rounded-3xl bg-emerald-50 border border-emerald-100 p-3">
+            <p class="text-center text-xs font-black uppercase tracking-widest text-emerald-700 mb-3">Готов к выдаче</p>
+            <div id="board-ready" class="grid gap-2"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-profile" class="hidden pb-10">
+        <div class="rounded-3xl bg-white border border-blue-100 p-5 mb-4">
+          <div class="flex items-center gap-3">
+            <div id="profile-avatar" class="h-14 w-14 rounded-2xl bg-blue-600 text-white grid place-items-center font-black text-lg"></div>
+            <div class="min-w-0">
+              <p id="profile-name" class="font-extrabold text-blue-900 truncate"></p>
+              <p id="profile-meta" class="text-xs text-slate-500 font-medium"></p>
+              <p id="profile-phone" class="text-xs text-blue-700 font-bold mt-0.5"></p>
+            </div>
+          </div>
+        </div>
+        <h3 class="text-sm font-extrabold text-blue-900 mb-2">Мой буфет</h3>
+        <select id="profile-venue" class="w-full mb-4 appearance-none rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm font-semibold"></select>
+        <h3 class="text-sm font-extrabold text-blue-900 mb-2">Способ оплаты</h3>
+        <div id="profile-card" class="mb-3"></div>
+        <button onclick="showWallet(true)" class="w-full mb-6 rounded-2xl border border-blue-200 bg-white py-3 text-sm font-extrabold text-blue-800">Привязать карту / Kaspi Gold</button>
+        <h3 class="text-sm font-extrabold text-blue-900 mb-2">История моих заказов</h3>
+        <p class="text-[11px] text-slate-500 -mt-1 mb-2">Сохраняются прошедшие выданные заказы.</p>
+        <div id="order-history" class="grid gap-3 mb-6"></div>
+        <button onclick="logout()" class="w-full rounded-2xl bg-slate-100 py-3 text-sm font-bold text-slate-600">Выйти из аккаунта</button>
+      </section>
+    </main>
+
+    <footer class="mt-auto px-4 pb-4 pt-2 text-center">
+      <button type="button" onclick="openStaffPin()" class="text-[11px] font-semibold text-slate-400 hover:text-blue-700">Вход для сотрудников 🔒</button>
+    </footer>
+
+    <div id="cart-bar" class="hidden fixed bottom-0 left-0 right-0 z-40">
+      <div class="mx-auto max-w-lg px-3 pb-3">
+        <div class="rounded-3xl bg-blue-900 text-white shadow-cart p-3 flex items-center gap-3">
+          <div class="h-12 w-12 rounded-2xl bg-white/15 grid place-items-center font-extrabold" id="cart-count">0</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[11px] text-blue-200 font-medium">Корзина</p>
+            <p class="text-lg font-extrabold leading-tight"><span id="cart-total">0</span> ₸</p>
+          </div>
+          <button onclick="openCheckout()" class="rounded-2xl bg-white text-blue-800 font-extrabold text-sm px-4 py-3 active:scale-[.98] transition">
+            Оформить предзаказ
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-staff" class="hidden min-h-dvh bg-slate-50">
+    <div class="mx-auto max-w-2xl min-h-dvh flex flex-col px-4 py-5">
+      <div class="rounded-3xl bg-blue-900 text-white p-5 mb-4 shadow-soft">
+        <p class="text-[11px] text-blue-200 font-black uppercase tracking-[.2em]">Кухонный терминал</p>
+        <h2 class="text-2xl font-black mt-1">Экран буфетчика</h2>
+        <p id="staff-count" class="text-sm text-blue-100 mt-1">Нет активных заказов</p>
+        <label class="block text-[11px] font-bold text-blue-200 mt-4 mb-1.5">Точка выдачи</label>
+        <select id="staff-venue" class="w-full appearance-none rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white"></select>
+      </div>
+      <div id="orders-list" class="grid gap-4 pb-6"></div>
+      <div class="mt-auto grid gap-2 pt-2 pb-[env(safe-area-inset-bottom)]">
+        <button onclick="exitStaffToMain()" class="w-full rounded-2xl bg-white border border-blue-100 py-3.5 text-sm font-extrabold text-blue-800 shadow-sm">Выйти на главный экран</button>
+        <button onclick="lockStaff()" class="w-full rounded-2xl bg-slate-100 py-3 text-xs font-bold text-slate-500">Завершить смену (сбросить PIN)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-tv" class="hidden min-h-dvh tv-bg text-white px-6 py-5">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <p class="text-sm text-blue-200 font-bold uppercase tracking-[.25em]">КарТУ · электронное табло</p>
+        <h1 id="tv-title" class="text-3xl font-black">Очередь выдачи</h1>
+      </div>
+      <div class="text-right">
+        <p id="tv-clock" class="text-4xl font-black tabular-nums"></p>
+        <button onclick="exitTv()" class="text-xs text-blue-200 mt-1">Выйти из ТВ-режима</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-6 min-h-[75vh]">
+      <div class="rounded-[2rem] bg-white/5 border border-white/10 p-6">
+        <p class="text-center text-xl font-black uppercase tracking-[.2em] text-blue-200 mb-6">Готовится</p>
+        <div id="tv-cooking" class="grid gap-4 content-start"></div>
+      </div>
+      <div class="rounded-[2rem] bg-emerald-500/10 border border-emerald-400/20 p-6">
+        <p class="text-center text-xl font-black uppercase tracking-[.2em] text-emerald-300 mb-6">Готов к выдаче</p>
+        <div id="tv-ready" class="grid gap-4 content-start"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeCheckout()"></div>
+    <div class="absolute inset-x-0 bottom-0 mx-auto max-w-lg">
+      <div class="m-3 rounded-3xl bg-white p-5 shadow-2xl animate-pop">
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <h3 class="text-lg font-extrabold text-blue-900">Оплата в один клик</h3>
+            <p class="text-xs text-slate-500" id="checkout-campus"></p>
+          </div>
+          <button onclick="closeCheckout()" class="h-8 w-8 rounded-full bg-slate-100 text-slate-500 font-bold">×</button>
+        </div>
+        <div id="checkout-items" class="space-y-2 mb-3 text-sm"></div>
+        <div class="flex justify-between items-center mb-4 pt-2 border-t border-slate-100">
+          <span class="text-sm font-semibold text-slate-500">Итого</span>
+          <span class="text-xl font-extrabold text-blue-800"><span id="checkout-total">0</span> ₸</span>
+        </div>
+        <div id="checkout-pay" class="mb-4"></div>
+        <button id="pay-btn" onclick="confirmPay()" class="w-full rounded-2xl bg-blue-600 text-white font-extrabold py-3.5 shadow-lg active:scale-[.99] transition">
+          Списать с карты
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pin-modal" class="hidden fixed inset-0 z-[70]">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeStaffPin()"></div>
+    <div class="absolute inset-x-0 bottom-0 mx-auto max-w-lg">
+      <div class="m-3 rounded-3xl bg-white p-5 shadow-2xl animate-pop">
+        <p class="text-[11px] font-black uppercase tracking-widest text-blue-500">Защищённый вход</p>
+        <h3 class="text-lg font-extrabold text-blue-900 mt-1">Вход для сотрудников</h3>
+        <p class="text-sm text-slate-500 mt-1 mb-4">Введите PIN-код буфета, чтобы открыть кухонный терминал.</p>
+        <input id="staff-pin" inputmode="numeric" maxlength="8" placeholder="••••" class="w-full rounded-2xl border border-blue-100 px-4 py-3 text-center text-2xl font-black tracking-[.4em] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <p id="pin-error" class="hidden mt-2 text-xs font-bold text-red-600">Неверный PIN-код</p>
+        <button onclick="submitStaffPin()" class="mt-4 w-full rounded-2xl bg-blue-900 text-white font-extrabold py-3.5">Войти в терминал</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ready-flash" class="hidden fixed inset-0 z-[80] bg-emerald-600 text-white grid place-items-center px-6" onclick="hideReadyFlash()">
+    <div class="text-center max-w-md">
+      <p class="text-sm font-black uppercase tracking-[.3em] opacity-80">Ваш заказ готов! Заберите у стойки</p>
+      <p id="flash-number" class="blink-num text-[18vw] leading-none font-black my-4 tabular-nums">—</p>
+      <p class="text-lg font-bold">Покажите номер кассиру</p>
+      <p id="flash-venue" class="text-sm text-emerald-100 mt-1"></p>
+      <p class="text-xs mt-8 opacity-80">Нажмите, чтобы закрыть</p>
+    </div>
+  </div>
+
+  <script>
+    const KEYS = {
+      user: 'kartu_user',
+      pay: 'kartu_pay',
+      orders: 'kartu_orders',
+      ping: 'kartu_orders_ping',
+      alerted: 'kartu_ready_alerted',
+      staff: 'kartu_staff'
+    };
+    const STAFF_PIN = '2026';
+    const VENUES = [
+      { id: 'main', name: 'Главный корпус', short: 'Главный корпус', prefix: 'Г', hint: 'Центральный буфет главного корпуса', menu: 'full' },
+      { id: 'c1-cafe', name: 'Кофейня · 1 этаж · 1 корпус', short: 'Кофейня 1к', prefix: 'К', hint: 'Кофейня на 1 этаже 1 корпуса', menu: 'cafe' },
+      { id: 'c1-b1', name: 'Буфет · 1 этаж · 1 корпус', short: 'Буфет 1к · 1эт', prefix: 'Б1', hint: 'Буфет на 1 этаже 1 корпуса', menu: 'buffet' },
+      { id: 'c1-b2', name: 'Буфет · 2 этаж · 1 корпус', short: 'Буфет 1к · 2эт', prefix: 'Б2', hint: 'Буфет на 2 этаже 1 корпуса', menu: 'buffet' }
+    ];
+    const MENUS = {
+      full: {
+        bakery: [
+          { id: 'sausage', name: 'Сосиска в тесте', price: 350, emoji: '🌭' },
+          { id: 'samsa', name: 'Самса с мясом', price: 400, emoji: '🥟' },
+          { id: 'pie', name: 'Пирожок с картошкой', price: 250, emoji: '🥧' }
+        ],
+        drinks: [
+          { id: 'tea', name: 'Чай черный', price: 150, emoji: '🍵' },
+          { id: 'juice', name: 'Сок 0.5L', price: 350, emoji: '🧃' },
+          { id: 'water', name: 'Вода 0.5L', price: 200, emoji: '💧' }
+        ],
+        popular: 'sausage'
+      },
+      cafe: {
+        bakery: [
+          { id: 'croissant', name: 'Круассан', price: 450, emoji: '🥐' },
+          { id: 'cookie', name: 'Печенье к кофе', price: 200, emoji: '🍪' },
+          { id: 'cheesecake', name: 'Чизкейк', price: 700, emoji: '🍰' }
+        ],
+        drinks: [
+          { id: 'americano', name: 'Американо', price: 400, emoji: '☕' },
+          { id: 'cappuccino', name: 'Капучино', price: 550, emoji: '🧋' },
+          { id: 'tea', name: 'Чай черный', price: 150, emoji: '🍵' }
+        ],
+        popular: 'cappuccino'
+      },
+      buffet: {
+        bakery: [
+          { id: 'sausage', name: 'Сосиска в тесте', price: 350, emoji: '🌭' },
+          { id: 'samsa', name: 'Самса с мясом', price: 400, emoji: '🥟' },
+          { id: 'pie', name: 'Пирожок с картошкой', price: 250, emoji: '🥧' }
+        ],
+        drinks: [
+          { id: 'tea', name: 'Чай черный', price: 150, emoji: '🍵' },
+          { id: 'kompot', name: 'Компот', price: 180, emoji: '🥤' },
+          { id: 'water', name: 'Вода 0.5L', price: 200, emoji: '💧' }
+        ],
+        popular: 'sausage'
+      }
+    };
+    const COOK_MS = 4 * 60 * 1000;
+    const PAIRS = [
+      { n: 1, start: 8 * 60, end: 9 * 60 + 20 },
+      { n: 2, start: 9 * 60 + 30, end: 10 * 60 + 50 },
+      { n: 3, start: 11 * 60, end: 12 * 60 + 20 },
+      { n: 4, start: 12 * 60 + 30, end: 13 * 60 + 50 },
+      { n: 5, start: 14 * 60, end: 15 * 60 + 20 },
+      { n: 6, start: 15 * 60 + 30, end: 16 * 60 + 50 },
+      { n: 7, start: 17 * 60, end: 18 * 60 + 20 }
+    ];
+
+    const state = {
+      mode: 'student',
+      cart: {},
+      orders: [],
+      user: null,
+      pay: null,
+      staff: { unlocked: false, screen: 'student' },
+      studentOrderId: null,
+      payTab: 'card',
+      fromProfile: false,
+      pendingCard: null,
+      kaspiTimer: null,
+      lastPing: ''
+    };
+
+    function loadJSON(key, fallback) {
+      try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
+    }
+    function saveJSON(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+    function persistOrders() {
+      saveJSON(KEYS.orders, state.orders);
+      localStorage.setItem(KEYS.ping, String(Date.now()));
+    }
+    function persistStaff() { saveJSON(KEYS.staff, state.staff); }
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function initials(name) {
+      return String(name || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
+    }
+    function venueById(id) { return VENUES.find((v) => v.id === id) || VENUES[0]; }
+    function currentVenueId() {
+      return document.getElementById('campus').value || (state.user && state.user.venueId) || 'main';
+    }
+    function currentVenue() { return venueById(currentVenueId()); }
+    function currentMenu() { return MENUS[currentVenue().menu]; }
+    function findItem(id) {
+      for (const menu of Object.values(MENUS)) {
+        const hit = [...menu.bakery, ...menu.drinks].find((x) => x.id === id);
+        if (hit) return hit;
+      }
+      return null;
+    }
+    function cartList() {
+      return Object.entries(state.cart).filter(([, q]) => q > 0).map(([id, qty]) => ({ ...findItem(id), qty })).filter((x) => x.id);
+    }
+    function cartTotal() { return cartList().reduce((s, i) => s + i.price * i.qty, 0); }
+    function cartCount() { return cartList().reduce((s, i) => s + i.qty, 0); }
+    function money(n) { return n.toLocaleString('ru-RU'); }
+    function fmtTime(ms) {
+      const s = Math.max(0, Math.ceil(ms / 1000));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const r = s % 60;
+      if (h) return `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+      return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+    }
+    function clock(ts) {
+      return new Date(ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+    function dayStamp(ts) {
+      return new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    }
+    function venueOptions(selected) {
+      return VENUES.map((v) => `<option value="${v.id}" ${v.id === selected ? 'selected' : ''}>${esc(v.name)}</option>`).join('');
+    }
+    function fillVenueSelects() {
+      const selected = (state.user && state.user.venueId) || 'main';
+      ['auth-venue', 'campus', 'staff-venue', 'board-venue', 'profile-venue'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const keep = el.value || selected;
+        el.innerHTML = venueOptions(keep);
+      });
+    }
+    function normalizeOrder(o) {
+      if (!o.status || o.status === 'pending') o.status = 'queued';
+      if (o.status === 'processing') o.status = 'queued';
+      return o;
+    }
+    function isActiveStatus(st) { return st === 'queued' || st === 'cooking' || st === 'ready'; }
+
+    function showScreen(id) {
+      ['screen-auth', 'screen-wallet', 'screen-app', 'screen-staff', 'screen-tv'].forEach((s) => {
+        document.getElementById(s).classList.toggle('hidden', s !== id);
+      });
+      document.body.style.background = id === 'screen-tv' ? '#020617' : '';
+      renderCartBar();
+    }
+
+    function boot() {
+      state.user = loadJSON(KEYS.user, null);
+      state.pay = loadJSON(KEYS.pay, null);
+      state.orders = loadJSON(KEYS.orders, []).map(normalizeOrder);
+      state.staff = loadJSON(KEYS.staff, { unlocked: false, screen: 'student' });
+      fillVenueSelects();
+      const mine = myOrders().find((o) => isActiveStatus(o.status));
+      state.studentOrderId = mine ? mine.id : null;
+      bindInputs();
+      if (location.hash === '#tv' || /[?&]tv=1/.test(location.search)) {
+        showScreen('screen-tv');
+        renderBoard();
+        return;
+      }
+      if (state.staff.unlocked && state.staff.screen === 'staff') {
+        enterStaff();
+        return;
+      }
+      if (state.user && state.user.fio && state.user.group) enterApp();
+      else showScreen('screen-auth');
+    }
+
+    function submitAuth(e) {
+      e.preventDefault();
+      const fio = document.getElementById('auth-fio').value.trim();
+      const sid = document.getElementById('auth-sid').value.trim();
+      const phoneRaw = digits(document.getElementById('auth-phone').value);
+      const err = document.getElementById('auth-error');
+      if (fio.split(/\s+/).length < 2) {
+        err.textContent = 'Введите фамилию и имя.';
+        err.classList.remove('hidden');
+        return;
+      }
+      if (!/^\d{6,12}$/.test(sid)) {
+        err.textContent = 'Студенческий билет: 6–12 цифр.';
+        err.classList.remove('hidden');
+        return;
+      }
+      if (phoneRaw.length < 10) {
+        err.textContent = 'Укажите номер телефона.';
+        err.classList.remove('hidden');
+        return;
+      }
+      const phone = formatPhone(phoneRaw);
+      state.user = {
+        fio,
+        sid,
+        phone,
+        course: document.getElementById('auth-course').value,
+        group: document.getElementById('auth-group').value,
+        venueId: document.getElementById('auth-venue').value
+      };
+      saveJSON(KEYS.user, state.user);
+      fillVenueSelects();
+      enterApp();
+    }
+
+    function formatPhone(raw) {
+      const d = String(raw).replace(/\D/g, '').replace(/^8/, '7');
+      const n = d.replace(/^7/, '').slice(-10);
+      return '+7 ' + n.replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4');
+    }
+
+    function enterApp() {
+      const toProfile = state.fromProfile;
+      state.fromProfile = false;
+      if (state.staff.unlocked) {
+        state.staff.screen = 'student';
+        persistStaff();
+      }
+      showScreen('screen-app');
+      paintHeader();
+      fillVenueSelects();
+      const vid = (state.user && state.user.venueId) || 'main';
+      document.getElementById('campus').value = vid;
+      document.getElementById('staff-venue').value = vid;
+      document.getElementById('board-venue').value = vid;
+      document.getElementById('profile-venue').value = vid;
+      setMode(toProfile ? 'profile' : 'student');
+      renderMenu();
+      renderPairTimer();
+      renderActiveOrder();
+      maybeAskNotify();
+    }
+
+    function enterStaff() {
+      state.staff.unlocked = true;
+      state.staff.screen = 'staff';
+      persistStaff();
+      closeStaffPin();
+      showScreen('screen-staff');
+      fillVenueSelects();
+      const vid = (state.user && state.user.venueId) || document.getElementById('staff-venue').value || 'main';
+      document.getElementById('staff-venue').value = vid;
+      renderStaff();
+    }
+
+    function openStaffPin() {
+      if (state.staff.unlocked) {
+        enterStaff();
+        return;
+      }
+      document.getElementById('pin-error').classList.add('hidden');
+      document.getElementById('staff-pin').value = '';
+      document.getElementById('pin-modal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('staff-pin').focus(), 50);
+    }
+    function closeStaffPin() { document.getElementById('pin-modal').classList.add('hidden'); }
+    function submitStaffPin() {
+      const pin = digits(document.getElementById('staff-pin').value);
+      if (pin !== STAFF_PIN) {
+        document.getElementById('pin-error').classList.remove('hidden');
+        return;
+      }
+      enterStaff();
+    }
+    function exitStaffToMain() {
+      state.staff.screen = 'student';
+      persistStaff();
+      if (state.user) enterApp();
+      else showScreen('screen-auth');
+    }
+    function lockStaff() {
+      state.staff = { unlocked: false, screen: 'student' };
+      persistStaff();
+      if (state.user) enterApp();
+      else showScreen('screen-auth');
+    }
+
+    function showWallet(fromProfile) {
+      state.fromProfile = !!fromProfile;
+      renderWallet();
+      showScreen('screen-wallet');
+    }
+
+    function paintHeader() {
+      if (!state.user) return;
+      const v = venueById(state.user.venueId);
+      document.getElementById('header-user').textContent = `${state.user.fio} · ${state.user.group} · ${v.short}`;
+      document.getElementById('header-initials').textContent = initials(state.user.fio);
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      document.getElementById('view-student').classList.toggle('hidden', mode !== 'student');
+      document.getElementById('view-board').classList.toggle('hidden', mode !== 'board');
+      document.getElementById('view-profile').classList.toggle('hidden', mode !== 'profile');
+      const on = 'bg-blue-600 text-white shadow-sm';
+      const off = 'text-blue-700';
+      ['student', 'board', 'profile'].forEach((m) => {
+        document.getElementById('tab-' + m).className = `px-3 py-1.5 rounded-full text-[11px] font-bold transition whitespace-nowrap ${mode === m ? on : off}`;
+      });
+      renderCartBar();
+      if (mode === 'profile') renderProfile();
+      if (mode === 'student') { renderMenu(); renderPairTimer(); renderActiveOrder(); }
+      if (mode === 'board') renderBoard();
+    }
+
+    function cardHtml(item) {
+      return `
+        <article class="flex gap-3 rounded-2xl bg-white border border-blue-100 p-3 shadow-sm">
+          <div class="h-16 w-16 rounded-2xl bg-blue-50 grid place-items-center text-3xl shrink-0">${item.emoji}</div>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-extrabold text-slate-800 leading-tight">${item.name}</h3>
+            <p class="text-blue-700 font-bold mt-0.5">${money(item.price)} ₸</p>
+            <button onclick="addToCart('${item.id}')" class="mt-2 w-full rounded-xl bg-blue-600 text-white text-xs font-extrabold py-2 active:scale-[.98] transition">
+              Добавить в корзину
+            </button>
+          </div>
+        </article>`;
+    }
+    function renderMenu() {
+      const menu = currentMenu();
+      const v = currentVenue();
+      document.getElementById('venue-hint').textContent = v.hint + ' · номера заказов: ' + v.prefix + '-01, ' + v.prefix + '-02…';
+      const pop = menu.bakery.concat(menu.drinks).find((i) => i.id === menu.popular) || menu.bakery[0];
+      document.getElementById('popular-slot').innerHTML = `
+        <article class="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-800 text-white p-3 shadow-soft">
+          <div class="h-14 w-14 rounded-2xl bg-white/15 grid place-items-center text-3xl">${pop.emoji}</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[11px] text-blue-100 font-semibold">${v.short}</p>
+            <h3 class="font-extrabold leading-tight">${pop.name}</h3>
+            <p class="text-sm font-bold text-blue-100">${pop.price} ₸</p>
+          </div>
+          <button onclick="addToCart('${pop.id}')" class="rounded-xl bg-white text-blue-800 text-xs font-extrabold px-3 py-2.5 shrink-0">В 1 клик</button>
+        </article>`;
+      document.getElementById('cat-bakery').innerHTML = menu.bakery.map(cardHtml).join('');
+      document.getElementById('cat-drinks').innerHTML = menu.drinks.map(cardHtml).join('');
+    }
+    function addToCart(id) {
+      state.cart[id] = (state.cart[id] || 0) + 1;
+      renderCartBar();
+    }
+    function renderCartBar() {
+      const bar = document.getElementById('cart-bar');
+      const onApp = !document.getElementById('screen-app').classList.contains('hidden');
+      const show = onApp && state.mode === 'student' && cartCount() > 0;
+      bar.classList.toggle('hidden', !show);
+      document.getElementById('cart-count').textContent = cartCount();
+      document.getElementById('cart-total').textContent = money(cartTotal());
+    }
+
+    function bankVisual(pay, compact) {
+      if (!pay) {
+        return `<div class="rounded-2xl border border-dashed border-blue-200 bg-white p-4 text-sm text-slate-500">Оплата ещё не привязана</div>`;
+      }
+      if (pay.type === 'kaspi') {
+        return `
+          <div class="${compact ? 'h-28' : 'h-44'} rounded-3xl card-kaspi kaspi-shine text-white p-5 shadow-soft relative overflow-hidden">
+            <p class="text-[11px] font-bold tracking-[.2em] uppercase opacity-80">Kaspi Gold</p>
+            <p class="mt-6 font-black text-lg tracking-wide">${esc(pay.phone)}</p>
+            <p class="absolute bottom-4 left-5 text-xs font-semibold opacity-90">${esc(state.user ? state.user.fio : '')}</p>
+            <span class="absolute top-5 right-5 font-black text-xl">K</span>
+          </div>`;
+      }
+      return `
+        <div class="${compact ? 'h-28' : 'h-44'} rounded-3xl card-shine text-white p-5 shadow-soft relative overflow-hidden">
+          <div class="flex justify-between items-start">
+            <p class="text-[11px] font-bold tracking-[.2em] uppercase opacity-80">${esc(pay.brand)}</p>
+            <span class="h-7 w-10 rounded bg-white/25"></span>
+          </div>
+          <p class="mt-8 font-black tracking-[.25em] ${compact ? 'text-base' : 'text-lg'}">•••• •••• •••• ${esc(pay.last4)}</p>
+          <div class="absolute bottom-4 left-5 right-5 flex justify-between text-xs font-semibold">
+            <span class="truncate pr-3">${esc(state.user ? state.user.fio : '')}</span>
+            <span>${esc(pay.exp)}</span>
+          </div>
+        </div>`;
+    }
+
+    function setPayTab(tab) {
+      state.payTab = tab;
+      document.getElementById('form-card').classList.toggle('hidden', tab !== 'card');
+      document.getElementById('form-kaspi').classList.toggle('hidden', tab !== 'kaspi');
+      const on = 'bg-blue-600 text-white shadow-sm';
+      const off = 'text-blue-700';
+      document.getElementById('paytab-card').className = `px-4 py-1.5 rounded-full text-xs font-bold ${tab === 'card' ? on : off}`;
+      document.getElementById('paytab-kaspi').className = `px-4 py-1.5 rounded-full text-xs font-bold ${tab === 'kaspi' ? on : off}`;
+      previewPay();
+    }
+
+    function detectBrand(num) {
+      if (num.startsWith('4')) return 'Visa';
+      if (/^5[1-5]/.test(num) || /^2/.test(num)) return 'Mastercard';
+      return 'Карта';
+    }
+    function digits(s) { return String(s).replace(/\D/g, ''); }
+
+    function previewPay() {
+      const box = document.getElementById('wallet-preview');
+      if (state.payTab === 'kaspi') {
+        const phone = document.getElementById('kaspi-phone').value.trim() || '+7 ••• ••• •• ••';
+        box.innerHTML = bankVisual({ type: 'kaspi', phone });
+        return;
+      }
+      const num = digits(document.getElementById('card-number').value);
+      const last4 = num.slice(-4) || '••••';
+      const exp = document.getElementById('card-exp').value || 'MM/YY';
+      box.innerHTML = bankVisual({ type: 'card', brand: num ? detectBrand(num) : 'Карта', last4, exp });
+    }
+
+    function renderWallet() {
+      document.getElementById('card-step-form').classList.remove('hidden');
+      document.getElementById('card-step-3ds').classList.add('hidden');
+      document.getElementById('kaspi-step-phone').classList.remove('hidden');
+      document.getElementById('kaspi-step-push').classList.add('hidden');
+      setPayTab(state.pay && state.pay.type === 'kaspi' ? 'kaspi' : 'card');
+      previewPay();
+    }
+
+    function bindInputs() {
+      const num = document.getElementById('card-number');
+      num.addEventListener('input', () => {
+        const d = digits(num.value).slice(0, 16);
+        num.value = d.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+        previewPay();
+      });
+      const exp = document.getElementById('card-exp');
+      exp.addEventListener('input', () => {
+        let v = digits(exp.value).slice(0, 4);
+        if (v.length >= 3) v = v.slice(0, 2) + '/' + v.slice(2);
+        exp.value = v;
+        previewPay();
+      });
+      document.getElementById('kaspi-phone').addEventListener('input', previewPay);
+      document.getElementById('staff-pin').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') submitStaffPin();
+      });
+      document.getElementById('campus').addEventListener('change', () => {
+        if (state.user) {
+          state.user.venueId = document.getElementById('campus').value;
+          saveJSON(KEYS.user, state.user);
+          paintHeader();
+        }
+        state.cart = {};
+        renderMenu();
+        renderCartBar();
+      });
+      document.getElementById('staff-venue').addEventListener('change', renderStaff);
+      document.getElementById('board-venue').addEventListener('change', renderBoard);
+      document.getElementById('profile-venue').addEventListener('change', () => {
+        state.user.venueId = document.getElementById('profile-venue').value;
+        saveJSON(KEYS.user, state.user);
+        document.getElementById('campus').value = state.user.venueId;
+        paintHeader();
+        renderMenu();
+      });
+    }
+
+    function startCardBind(e) {
+      e.preventDefault();
+      const num = digits(document.getElementById('card-number').value);
+      const exp = document.getElementById('card-exp').value;
+      const cvv = digits(document.getElementById('card-cvv').value);
+      const err = document.getElementById('card-error');
+      if (num.length !== 16) { err.textContent = 'Номер карты: 16 цифр.'; err.classList.remove('hidden'); return; }
+      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(exp)) { err.textContent = 'Срок в формате ММ/ГГ.'; err.classList.remove('hidden'); return; }
+      if (cvv.length < 3) { err.textContent = 'Введите CVV (не сохраняется).'; err.classList.remove('hidden'); return; }
+      document.getElementById('card-cvv').value = '';
+      state.pendingCard = { type: 'card', brand: detectBrand(num), last4: num.slice(-4), exp };
+      document.getElementById('card-step-form').classList.add('hidden');
+      document.getElementById('card-step-3ds').classList.remove('hidden');
+    }
+    function finishCardBind() {
+      const otp = digits(document.getElementById('card-otp').value);
+      if (otp.length !== 4) return;
+      state.pay = state.pendingCard;
+      saveJSON(KEYS.pay, state.pay);
+      document.getElementById('card-otp').value = '';
+      enterApp();
+    }
+
+    function startKaspiBind() {
+      const raw = digits(document.getElementById('kaspi-phone').value);
+      const err = document.getElementById('kaspi-error');
+      if (raw.length < 10) { err.textContent = 'Укажите телефон Kaspi.'; err.classList.remove('hidden'); return; }
+      document.getElementById('kaspi-step-phone').classList.add('hidden');
+      document.getElementById('kaspi-step-push').classList.remove('hidden');
+      const bar = document.getElementById('kaspi-bar');
+      let w = 20;
+      clearInterval(state.kaspiTimer);
+      state.kaspiTimer = setInterval(() => {
+        w = Math.min(92, w + 8);
+        bar.style.width = w + '%';
+      }, 280);
+    }
+    function finishKaspiBind() {
+      const raw = digits(document.getElementById('kaspi-phone').value);
+      const otp = digits(document.getElementById('kaspi-otp').value);
+      if (otp.length < 4) return;
+      clearInterval(state.kaspiTimer);
+      const phone = formatPhone(raw);
+      state.pay = { type: 'kaspi', phone };
+      saveJSON(KEYS.pay, state.pay);
+      document.getElementById('kaspi-otp').value = '';
+      enterApp();
+    }
+
+    function payLabel() {
+      if (!state.pay) return 'Нет способа оплаты';
+      if (state.pay.type === 'kaspi') return `Kaspi ${state.pay.phone}`;
+      return `${state.pay.brand} ••${state.pay.last4}`;
+    }
+
+    function openCheckout() {
+      if (!cartCount()) return;
+      if (!state.pay) { showWallet(false); return; }
+      const v = currentVenue();
+      document.getElementById('checkout-campus').textContent = v.name;
+      document.getElementById('checkout-items').innerHTML = cartList().map((i) => `
+        <div class="flex justify-between gap-2">
+          <span class="text-slate-600">${i.emoji} ${i.name} × ${i.qty}</span>
+          <span class="font-bold">${money(i.price * i.qty)} ₸</span>
+        </div>`).join('');
+      document.getElementById('checkout-total').textContent = money(cartTotal());
+      document.getElementById('checkout-pay').innerHTML = bankVisual(state.pay, true) + `<p class="text-xs text-slate-500 mt-2 font-medium">Списание с ${esc(payLabel())} без повторного ввода реквизитов.</p>`;
+      const btn = document.getElementById('pay-btn');
+      btn.textContent = state.pay.type === 'kaspi' ? `Оплатить ${money(cartTotal())} ₸ через Kaspi` : `Списать ${money(cartTotal())} ₸ в один клик`;
+      btn.className = `w-full rounded-2xl ${state.pay.type === 'kaspi' ? 'bg-[#F14635]' : 'bg-blue-600'} text-white font-extrabold py-3.5 shadow-lg active:scale-[.99] transition`;
+      document.getElementById('modal').classList.remove('hidden');
+    }
+    function closeCheckout() { document.getElementById('modal').classList.add('hidden'); }
+
+    function uniqueNumber(venueId) {
+      const v = venueById(venueId);
+      const day = new Date().toDateString();
+      const seqs = state.orders
+        .filter((o) => o.venueId === venueId && new Date(o.createdAt).toDateString() === day)
+        .map((o) => o.seq || 0);
+      const seq = (seqs.length ? Math.max(...seqs) : 0) + 1;
+      return { number: `${v.prefix}-${String(seq).padStart(2, '0')}`, seq };
+    }
+
+    function confirmPay() {
+      if (!cartCount() || !state.pay) return;
+      const venue = currentVenue();
+      const { number, seq } = uniqueNumber(venue.id);
+      const etaMin = 3 + Math.floor(Math.random() * 3);
+      const order = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        number,
+        seq,
+        venueId: venue.id,
+        campus: venue.name,
+        items: cartList(),
+        total: cartTotal(),
+        createdAt: Date.now(),
+        acceptedAt: null,
+        etaMin,
+        status: 'queued',
+        sid: state.user.sid,
+        student: state.user.fio,
+        group: state.user.group,
+        phone: state.user.phone || '',
+        paidVia: payLabel()
+      };
+      state.orders.unshift(order);
+      persistOrders();
+      state.studentOrderId = order.id;
+      state.cart = {};
+      closeCheckout();
+      renderCartBar();
+      renderActiveOrder();
+      renderBoard();
+    }
+
+    function etaStart(order) { return order.acceptedAt || order.createdAt; }
+    function remaining(order) { return Math.max(0, (order.etaMin || 4) * 60 * 1000 - (Date.now() - etaStart(order))); }
+    function myOrders() { return state.orders.filter((o) => state.user && o.sid === state.user.sid); }
+    function statusText(st) {
+      if (st === 'queued') return 'В обработке';
+      if (st === 'cooking') return 'Готовится';
+      if (st === 'ready') return 'ГОТОВ К ВЫДАЧЕ';
+      if (st === 'issued') return 'Выдан';
+      return 'В обработке';
+    }
+
+    function barcodeHtml(code) {
+      const bits = [];
+      const seed = String(code);
+      for (let i = 0; i < seed.length * 4; i++) {
+        const ch = seed.charCodeAt(i % seed.length) + i * 7;
+        const w = (ch % 3) + 1;
+        bits.push(`<i style="width:${w}px;margin-right:${ch % 2 ? 1 : 2}px;opacity:${ch % 5 === 0 ? .45 : 1}"></i>`);
+      }
+      return `<div class="barcode bg-white rounded-xl px-3 py-2">${bits.join('')}</div>`;
+    }
+
+    function mountQr(elId, text) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      const src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=' + encodeURIComponent(text);
+      el.innerHTML = `<img alt="QR заказа" class="h-52 w-52 mx-auto rounded-xl bg-white" src="${src}" />`;
+    }
+
+    function renderActiveOrder() {
+      const box = document.getElementById('active-order');
+      const order = state.orders.find((o) => o.id === state.studentOrderId);
+      if (!order || order.status === 'issued') {
+        box.classList.add('hidden');
+        box.innerHTML = '';
+        return;
+      }
+      const ready = order.status === 'ready';
+      const queued = order.status === 'queued';
+      const cooking = order.status === 'cooking';
+      const qrPayload = `KARTU|${order.number}|${order.campus}|${order.sid}`;
+      const eta = order.etaMin || 4;
+      box.classList.remove('hidden');
+      box.className = `mb-4 rounded-3xl border-2 p-5 animate-pop ${
+        ready ? 'bg-emerald-50 border-emerald-400 shadow-soft' : queued ? 'bg-orange-50 border-orange-300' : 'bg-white border-blue-300'
+      }`;
+      const statusBlock = ready
+        ? `<p class="text-2xl font-black text-emerald-600 leading-tight mt-2">ГОТОВ К ВЫДАЧЕ</p>
+           <p class="text-sm font-extrabold text-emerald-800 mt-1">Покажите номер кассиру</p>
+           <p class="mt-3 text-base font-black text-emerald-700">Ваш заказ готов! Заберите у стойки</p>`
+        : queued
+          ? `<p class="text-lg font-black text-orange-600 mt-2"><span class="hourglass">⏳</span> В обработке</p>
+             <p class="text-sm text-orange-800 font-semibold mt-1">Буфет принял оплату. Ожидайте, заказ скоро возьмут в работу.</p>`
+          : `<p class="text-lg font-black text-blue-800 mt-2">Готовится</p>
+             <p class="text-sm text-blue-700 font-semibold mt-1">Повара уже готовят ваш заказ.</p>`;
+      box.innerHTML = `
+        <p class="text-[11px] font-bold ${ready ? 'text-emerald-700' : queued ? 'text-orange-700' : 'text-blue-700'} uppercase tracking-wide">Статус заказа</p>
+        <p class="${ready ? 'blink-num text-6xl text-emerald-600' : queued ? 'text-5xl text-orange-600' : 'text-5xl text-blue-800'} font-black tabular-nums leading-none mt-1">#${esc(order.number)}</p>
+        ${statusBlock}
+        <p class="text-xs text-slate-500 mt-1">${esc(order.campus)}</p>
+        ${!ready ? `<div class="mt-3 rounded-2xl bg-white/80 border border-white/60 p-3">
+          <div class="flex justify-between text-sm">
+            <span class="font-semibold ${queued ? 'text-orange-700' : 'text-blue-700'}">Примерное время готовности</span>
+            <span class="font-black tabular-nums">~${eta} мин</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">Обычно 3–5 минут. Осталось: <span id="timer" class="font-black">${fmtTime(remaining(order))}</span></p>
+        </div>` : ''}
+        <div class="mt-3 grid place-items-center gap-3 bg-white border border-slate-100 rounded-2xl p-4">
+          <div id="order-qr" class="grid place-items-center"></div>
+          ${barcodeHtml(order.number.replace('-', ''))}
+          <p class="text-[11px] font-bold text-slate-500">Покажите QR / штрихкод на стойке</p>
+        </div>
+        <p class="text-xs text-slate-600 mt-3 font-semibold">${order.items.map((i) => `${esc(i.name)} × ${i.qty}`).join(', ')}</p>
+        ${ready ? `<button onclick="markIssued('${order.id}')" class="mt-3 w-full rounded-xl bg-emerald-600 text-white text-sm font-extrabold py-3">Я получил заказ</button>` : ''}
+      `;
+      mountQr('order-qr', qrPayload);
+      if (ready) maybeAlertReady(order);
+    }
+
+    function playReadySignal() {
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new Ctx();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(880, ctx.currentTime);
+        o.frequency.setValueAtTime(1175, ctx.currentTime + 0.11);
+        g.gain.setValueAtTime(0.18, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.38);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(); o.stop(ctx.currentTime + 0.4);
+      } catch {}
+      try { if (navigator.vibrate) navigator.vibrate([90, 60, 90, 60, 180]); } catch {}
+    }
+
+    function maybeAskNotify() {
+      if (!('Notification' in window)) return;
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+    }
+
+    function maybeAlertReady(order) {
+      const alerted = loadJSON(KEYS.alerted, []);
+      if (alerted.includes(order.id)) return;
+      alerted.push(order.id);
+      saveJSON(KEYS.alerted, alerted.slice(-40));
+      playReadySignal();
+      showReadyFlash(order);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification('Ваш заказ готов! Заберите у стойки', {
+            body: `#${order.number} · Покажите номер кассиру`,
+            tag: 'kartu-ready-' + order.id
+          });
+        } catch {}
+      }
+    }
+
+    function showReadyFlash(order) {
+      document.getElementById('flash-number').textContent = '#' + order.number;
+      document.getElementById('flash-venue').textContent = order.campus;
+      document.getElementById('ready-flash').classList.remove('hidden');
+    }
+    function hideReadyFlash() {
+      document.getElementById('ready-flash').classList.add('hidden');
+    }
+
+    function takeOrder(id) {
+      const order = state.orders.find((o) => o.id === id);
+      if (!order) return;
+      order.status = 'cooking';
+      order.acceptedAt = Date.now();
+      persistOrders();
+      renderStaff();
+      renderActiveOrder();
+      renderBoard();
+    }
+    function markReady(id) {
+      const order = state.orders.find((o) => o.id === id);
+      if (!order) return;
+      order.status = 'ready';
+      persistOrders();
+      renderStaff();
+      renderActiveOrder();
+      renderBoard();
+      if (state.user && order.sid === state.user.sid) maybeAlertReady(order);
+    }
+    function markIssued(id) {
+      const order = state.orders.find((o) => o.id === id);
+      if (!order) return;
+      order.status = 'issued';
+      order.issuedAt = Date.now();
+      persistOrders();
+      if (state.studentOrderId === id) state.studentOrderId = null;
+      hideReadyFlash();
+      renderActiveOrder();
+      renderProfile();
+      renderStaff();
+      renderBoard();
+    }
+
+    function ordersFor(venueSelectId) {
+      const vid = document.getElementById(venueSelectId).value;
+      return state.orders.filter((o) => (o.venueId || 'main') === vid);
+    }
+
+    function renderStaff() {
+      const list = document.getElementById('orders-list');
+      const rows = ordersFor('staff-venue').filter((o) => isActiveStatus(o.status));
+      const queued = rows.filter((o) => o.status === 'queued').length;
+      const cooking = rows.filter((o) => o.status === 'cooking').length;
+      const ready = rows.filter((o) => o.status === 'ready').length;
+      document.getElementById('staff-count').textContent = rows.length
+        ? `Активных: ${rows.length} · в обработке ${queued} · готовится ${cooking} · готово ${ready}`
+        : 'Пока нет поступивших заказов';
+      if (!rows.length) {
+        list.innerHTML = `<div class="rounded-3xl border border-dashed border-blue-200 bg-white p-10 text-center text-slate-500"><p class="text-4xl mb-2">🍽️</p><p class="font-extrabold text-blue-900">Ожидаем предзаказы студентов</p><p class="text-sm mt-1">Новые заказы появятся здесь автоматически</p></div>`;
+        return;
+      }
+      list.innerHTML = rows.map((o) => {
+        const tone = o.status === 'ready' ? 'border-emerald-300 bg-emerald-50' : o.status === 'queued' ? 'border-orange-200 bg-white' : 'border-blue-200 bg-white';
+        const badge = o.status === 'ready' ? 'bg-emerald-600 text-white' : o.status === 'queued' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-800';
+        const actions = o.status === 'queued'
+          ? `<button onclick="takeOrder('${o.id}')" class="w-full rounded-2xl bg-blue-600 text-white font-black text-lg py-4">Взять в работу</button>`
+          : o.status === 'cooking'
+            ? `<button onclick="markReady('${o.id}')" class="w-full rounded-2xl bg-emerald-600 text-white font-black text-2xl py-5 tracking-wide">ГОТОВ</button>`
+            : `<button onclick="markIssued('${o.id}')" class="w-full rounded-2xl bg-slate-800 text-white font-black text-lg py-4">Выдан</button>`;
+        return `
+          <article class="board-card rounded-3xl border-2 ${tone} p-5 shadow-soft">
+            <div class="flex items-start justify-between gap-3">
+              <p class="text-5xl font-black tabular-nums leading-none text-blue-950">#${esc(o.number)}</p>
+              <span class="live-dot rounded-full px-3 py-1.5 text-[11px] font-black uppercase ${badge}">${statusText(o.status)}</span>
+            </div>
+            <p class="text-sm font-bold text-slate-500 mt-2">Время заказа: ${clock(o.createdAt)}</p>
+            <p class="text-xs text-slate-500">${esc(o.student || '')} · ${esc(o.group || '')}</p>
+            <ul class="mt-4 space-y-2 text-lg font-extrabold text-slate-800">
+              ${o.items.map((i) => `<li>${i.emoji} ${esc(i.name)} × ${i.qty}</li>`).join('')}
+            </ul>
+            <div class="mt-5">${actions}</div>
+          </article>`;
+      }).join('');
+    }
+
+    function boardCard(o, ready) {
+      return `<div class="board-card rounded-2xl ${ready ? 'bg-emerald-600 text-white' : 'bg-white text-blue-900 border border-blue-100'} p-3 text-center">
+        <p class="${ready ? 'blink-num' : ''} text-3xl font-black tabular-nums leading-none">${esc(o.number)}</p>
+      </div>`;
+    }
+    function tvCard(o, ready) {
+      return `<div class="board-card rounded-3xl ${ready ? 'bg-emerald-400 text-emerald-950' : 'bg-white text-blue-950'} py-6 text-center">
+        <p class="${ready ? 'blink-num' : ''} text-6xl font-black tabular-nums leading-none">${esc(o.number)}</p>
+      </div>`;
+    }
+    function renderBoard() {
+      const now = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      const v = venueById(document.getElementById('board-venue').value || (state.user && state.user.venueId) || 'main');
+      document.getElementById('board-clock').textContent = now;
+      document.getElementById('board-title').textContent = v.short;
+      document.getElementById('tv-clock').textContent = now;
+      document.getElementById('tv-title').textContent = v.name;
+      const rows = state.orders.filter((o) => (o.venueId || 'main') === v.id);
+      const cooking = rows.filter((o) => o.status === 'queued' || o.status === 'cooking');
+      const ready = rows.filter((o) => o.status === 'ready');
+      const empty = (msg) => `<p class="text-center text-sm text-slate-400 py-8">${msg}</p>`;
+      document.getElementById('board-cooking').innerHTML = cooking.length ? cooking.map((o) => boardCard(o, false)).join('') : empty('Пусто');
+      document.getElementById('board-ready').innerHTML = ready.length ? ready.map((o) => boardCard(o, true)).join('') : empty('Пусто');
+      document.getElementById('tv-cooking').innerHTML = cooking.length ? cooking.map((o) => tvCard(o, false)).join('') : `<p class="text-center text-blue-200/60 py-10">Нет заказов</p>`;
+      document.getElementById('tv-ready').innerHTML = ready.length ? ready.map((o) => tvCard(o, true)).join('') : `<p class="text-center text-emerald-200/60 py-10">Нет заказов</p>`;
+    }
+    function exitTv() {
+      location.hash = '';
+      if (state.user) { enterApp(); setMode('board'); }
+      else showScreen('screen-auth');
+    }
+
+    function renderProfile() {
+      if (!state.user) return;
+      const v = venueById(state.user.venueId);
+      document.getElementById('profile-avatar').textContent = initials(state.user.fio);
+      document.getElementById('profile-name').textContent = state.user.fio;
+      document.getElementById('profile-meta').textContent = `${state.user.group} · ${state.user.course} · ${v.short} · билет ${state.user.sid}`;
+      document.getElementById('profile-phone').textContent = state.user.phone ? `Тел. ${state.user.phone}` : '';
+      document.getElementById('profile-venue').value = state.user.venueId || 'main';
+      document.getElementById('profile-card').innerHTML = bankVisual(state.pay);
+      const hist = myOrders().filter((o) => o.status === 'issued');
+      const box = document.getElementById('order-history');
+      if (!hist.length) {
+        box.innerHTML = `<div class="rounded-2xl border border-dashed border-blue-200 bg-white p-6 text-center text-sm text-slate-500">Выданных заказов пока нет</div>`;
+        return;
+      }
+      box.innerHTML = hist.map((o) => `
+        <article class="rounded-2xl bg-white border border-blue-100 p-4">
+          <div class="flex justify-between gap-2">
+            <p class="font-black text-blue-900">#${esc(o.number)}</p>
+            <span class="text-[10px] font-black uppercase text-slate-500">Выдан</span>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">${dayStamp(o.issuedAt || o.createdAt)} · ${esc(o.campus)}</p>
+          <p class="text-sm mt-2">${o.items.map((i) => `${esc(i.name)} × ${i.qty}`).join(', ')}</p>
+          <p class="text-sm font-extrabold text-blue-800 mt-1">${money(o.total)} ₸ · ${esc(o.paidVia || '')}</p>
+        </article>`).join('');
+    }
+
+    function pairState() {
+      const now = new Date();
+      const mins = now.getHours() * 60 + now.getMinutes();
+      const sec = now.getSeconds();
+      const first = PAIRS[0].start;
+      const last = PAIRS[PAIRS.length - 1].end;
+      if (mins * 60 + sec < first * 60) {
+        return { title: 'До первой пары', sub: 'Расписание КарТУ · пара 80 мин', left: first * 60 - (mins * 60 + sec), progress: 0 };
+      }
+      for (const p of PAIRS) {
+        if (mins >= p.start && mins < p.end) {
+          const left = p.end * 60 - (mins * 60 + sec);
+          const dur = (p.end - p.start) * 60;
+          return { title: `До перемены · ${p.n} пара`, sub: `${fmtClock(p.start)}–${fmtClock(p.end)}`, left, progress: 1 - left / dur };
+        }
+      }
+      for (let i = 0; i < PAIRS.length - 1; i++) {
+        if (mins >= PAIRS[i].end && mins < PAIRS[i + 1].start) {
+          const left = PAIRS[i + 1].start * 60 - (mins * 60 + sec);
+          return { title: 'Перемена', sub: `До ${i + 2} пары`, left, progress: 1 };
+        }
+      }
+      if (mins >= last) return { title: 'Пары окончены', sub: 'Буфет ещё принимает предзаказы', left: 0, progress: 1 };
+      return { title: 'Расписание', sub: 'КарТУ', left: 0, progress: 0 };
+    }
+    function fmtClock(mins) {
+      return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+    }
+    function renderPairTimer() {
+      const p = pairState();
+      document.getElementById('pair-timer').innerHTML = `
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <p class="text-[11px] font-bold text-blue-500 uppercase tracking-wide">До выдачи на перемене</p>
+            <p class="text-base font-extrabold text-blue-900">${p.title}</p>
+            <p class="text-xs text-slate-500">${p.sub}</p>
+          </div>
+          <p class="text-2xl font-black text-blue-700 tabular-nums" id="pair-count">${p.left ? fmtTime(p.left * 1000) : '—'}</p>
+        </div>
+        <div class="mt-3 h-2 rounded-full bg-blue-100 overflow-hidden">
+          <div class="h-full bg-blue-600 rounded-full" style="width:${Math.round(Math.min(100, Math.max(0, p.progress * 100)))}%"></div>
+        </div>`;
+    }
+
+    function logout() {
+      localStorage.removeItem(KEYS.user);
+      localStorage.removeItem(KEYS.pay);
+      state.user = null;
+      state.pay = null;
+      state.cart = {};
+      state.studentOrderId = null;
+      showScreen('screen-auth');
+    }
+
+    function syncFromStorage() {
+      const ping = localStorage.getItem(KEYS.ping) || '';
+      const next = loadJSON(KEYS.orders, []).map(normalizeOrder);
+      const changed = ping !== state.lastPing || JSON.stringify(next) !== JSON.stringify(state.orders);
+      state.lastPing = ping;
+      if (!changed) return;
+      state.orders = next;
+      const mine = myOrders().find((o) => isActiveStatus(o.status));
+      if (mine) state.studentOrderId = mine.id;
+      else if (state.studentOrderId) {
+        const still = state.orders.find((o) => o.id === state.studentOrderId);
+        if (!still || still.status === 'issued') state.studentOrderId = null;
+      }
+      const onStaff = !document.getElementById('screen-staff').classList.contains('hidden');
+      const onApp = !document.getElementById('screen-app').classList.contains('hidden');
+      const onTv = !document.getElementById('screen-tv').classList.contains('hidden');
+      if (onApp && state.mode === 'student') renderActiveOrder();
+      if (onApp && state.mode === 'profile') renderProfile();
+      if (onStaff) renderStaff();
+      if ((onApp && state.mode === 'board') || onTv) renderBoard();
+      const readyMine = myOrders().find((o) => o.status === 'ready');
+      if (readyMine) maybeAlertReady(readyMine);
+    }
+    window.addEventListener('storage', (e) => {
+      if (e.key === KEYS.orders || e.key === KEYS.ping || e.key === KEYS.staff) {
+        if (e.key === KEYS.staff) state.staff = loadJSON(KEYS.staff, state.staff);
+        syncFromStorage();
+      }
+    });
+
+    setInterval(() => {
+      syncFromStorage();
+      const tv = !document.getElementById('screen-tv').classList.contains('hidden');
+      const staff = !document.getElementById('screen-staff').classList.contains('hidden');
+      if (tv || (state.mode === 'board' && !document.getElementById('screen-app').classList.contains('hidden'))) renderBoard();
+      if (staff) return;
+      if (document.getElementById('screen-app').classList.contains('hidden') && !tv) return;
+      if (state.mode === 'student') {
+        renderPairTimer();
+        const order = state.orders.find((o) => o.id === state.studentOrderId);
+        const el = document.getElementById('timer');
+        if (el && order && (order.status === 'queued' || order.status === 'cooking')) el.textContent = fmtTime(remaining(order));
+      }
+    }, 1500);
+
+    boot();
+  </script>
+</body>
+</html>
